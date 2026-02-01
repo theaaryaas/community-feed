@@ -22,7 +22,14 @@ function getCsrfToken() {
 }
 
 // Use environment variable for API URL, fallback to relative path
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+// Automatically add /api if it's missing from the URL
+let API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+if (API_BASE_URL && !API_BASE_URL.endsWith('/api')) {
+  // If URL doesn't end with /api, add it
+  API_BASE_URL = API_BASE_URL.endsWith('/') 
+    ? API_BASE_URL + 'api' 
+    : API_BASE_URL + '/api'
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
