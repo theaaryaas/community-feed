@@ -32,43 +32,50 @@ function Register({ onRegister }) {
       setError('')
       setSuccess('')
       
-      // Use the create-user endpoint
-      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/create-user/`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        credentials: 'include',
-        body: JSON.stringify({
-          username,
-          password,
-          email
-        })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
+      // Use the create-user endpoint via API helper
+      const response = await authAPI.createUser(username, password, email)
+      
+      if (response.data && response.data.success) {
         setSuccess(`Account created successfully! You can now login as ${username}`)
         setUsername('')
         setPassword('')
         setConfirmPassword('')
         setEmail('')
-        // Optionally auto-login after registration
         if (onRegister) {
           setTimeout(() => {
             onRegister()
           }, 1500)
         }
       } else {
-        setError(data.error || 'Failed to create account')
+        setError(response.data?.error || 'Failed to create account')
       }
     } catch (err) {
       console.error('Registration error:', err)
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to create account. Please try again.'
-      setError(errorMsg)
+      let errorMsg = 'Failed to create account. Please try again.'
       
-      if (err.code === 'ERR_NETWORK' || err.message.includes('Network')) {
-        setError('Cannot connect to server. Please check if backend is running.')
+      if (err.response) {
+        // Axios error with response
+        const status = err.response.status
+        const data = err.response.data
+        
+        if (status === 400) {
+          errorMsg = data?.error || 'Invalid data. Please check your inputs.'
+        } else if (status === 500) {
+          errorMsg = 'Server error. The backend might be down. Check: https://community-feed-backend.onrender.com'
+        } else if (status === 404) {
+          errorMsg = 'Endpoint not found. Make sure backend is deployed and running.'
+        } else {
+          errorMsg = data?.error || `Error ${status}: ${err.response.statusText}`
+        }
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network') || err.message?.includes('Failed to fetch')) {
+        errorMsg = 'Cannot connect to server. Check if backend is running at: https://community-feed-backend.onrender.com'
+      } else if (err.message?.includes('HTML') || err.message?.includes('<!doctype')) {
+        errorMsg = 'Backend returned an error page instead of JSON. Check Render logs for errors.'
+      } else {
+        errorMsg = err.message || 'Failed to create account. Please try again.'
       }
+      
+      setError(errorMsg)
     } finally {
       setRegistering(false)
     }

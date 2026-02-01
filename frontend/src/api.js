@@ -122,6 +122,7 @@ export const authAPI = {
   logout: () => api.post('/logout/'),
   checkAuth: () => api.get('/check-auth/'),
   getCurrentUser: () => api.get('/current-user/'),
+  createUser: (username, password, email) => api.post('/create-user/', { username, password, email }),
 }
 
 export default api
