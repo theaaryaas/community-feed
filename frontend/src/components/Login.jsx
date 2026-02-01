@@ -14,21 +14,38 @@ function Login({ onLogin }) {
     try {
       setLoggingIn(true)
       setError('')
+      
+      // First, try to get CSRF token by checking auth
+      try {
+        await authAPI.checkAuth()
+      } catch (e) {
+        // Ignore - just trying to get CSRF token
+      }
+      
       // Use custom login endpoint
       const response = await authAPI.login(username, password)
       
       if (response.data.success) {
         // Login successful - session cookie is set
+        // Wait a moment for cookie to be set
+        await new Promise(resolve => setTimeout(resolve, 100))
         if (onLogin) onLogin()
         setUsername('')
         setPassword('')
+        // Reload to ensure session is properly set
+        window.location.reload()
       } else {
         throw new Error('Login failed')
       }
     } catch (err) {
       console.error('Login error:', err)
-      const errorMsg = err.response?.data?.error || 'Invalid username or password'
+      const errorMsg = err.response?.data?.error || err.message || 'Invalid username or password'
       setError(errorMsg)
+      
+      // If it's a network error, provide helpful message
+      if (err.code === 'ERR_NETWORK' || err.message.includes('Network')) {
+        setError('Cannot connect to server. Please check if backend is running.')
+      }
     } finally {
       setLoggingIn(false)
     }

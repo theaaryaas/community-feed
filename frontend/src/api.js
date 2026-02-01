@@ -39,12 +39,29 @@ const api = axios.create({
   },
 })
 
+// Get CSRF token from backend before making POST requests
+async function ensureCsrfToken() {
+  const csrftoken = getCsrfToken();
+  if (!csrftoken) {
+    // Try to get CSRF token by making a GET request
+    try {
+      await api.get('/check-auth/');
+      // CSRF token should now be in cookies
+    } catch (e) {
+      // Ignore errors, just trying to get CSRF token
+    }
+  }
+  return getCsrfToken();
+}
+
 // Add CSRF token to all POST/PUT/DELETE requests
 api.interceptors.request.use(
-  (config) => {
-    const csrftoken = getCsrfToken();
-    if (csrftoken && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
-      config.headers['X-CSRFToken'] = csrftoken;
+  async (config) => {
+    if (['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      const csrftoken = await ensureCsrfToken();
+      if (csrftoken) {
+        config.headers['X-CSRFToken'] = csrftoken;
+      }
     }
     return config;
   },

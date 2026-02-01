@@ -12,6 +12,8 @@ from .serializers import UserSerializer
 @permission_classes([AllowAny])
 def login_view(request):
     """Custom login endpoint for frontend"""
+    from django.middleware.csrf import get_token
+    
     username = request.data.get('username')
     password = request.data.get('password')
     
@@ -24,13 +26,18 @@ def login_view(request):
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        return Response({
+        # Get CSRF token for the response
+        csrf_token = get_token(request)
+        response = Response({
             'success': True,
             'user': {
                 'id': user.id,
                 'username': user.username
             }
         })
+        # Set CSRF token in response header
+        response['X-CSRFToken'] = csrf_token
+        return response
     else:
         return Response(
             {'error': 'Invalid username or password'},
