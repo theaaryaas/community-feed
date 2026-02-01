@@ -29,6 +29,7 @@ function App() {
         setCurrentUser(null)
       }
     } catch (error) {
+      console.error('Auth check failed:', error)
       setIsAuthenticated(false)
       setCurrentUser(null)
     } finally {
@@ -113,6 +114,12 @@ function App() {
                 <CreatePost onPostCreated={handleRefresh} />
                 <Feed key={refreshKey} onUpdate={handleRefresh} />
               </>
+            )}
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-4 p-2 bg-gray-100 text-xs text-gray-600">
+                API URL: {import.meta.env.VITE_API_URL || '/api (relative)'}
+              </div>
             )}
           </div>
           <div className="lg:col-span-1">

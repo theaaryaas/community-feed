@@ -21,8 +21,11 @@ function getCsrfToken() {
   return getCookie('csrftoken');
 }
 
+// Use environment variable for API URL, fallback to relative path
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -42,6 +45,23 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 )
+
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      status: error.response?.status,
+      message: error.message,
+    })
+    return Promise.reject(error);
+  }
+)
+
+// Log API base URL on initialization (for debugging)
+console.log('API Base URL:', API_BASE_URL)
 
 export const postsAPI = {
   getAll: () => api.get('/posts/'),
