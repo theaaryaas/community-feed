@@ -102,6 +102,8 @@ def create_user_view(request):
     """Temporary endpoint to create user (for free tier without shell access)
     ⚠️ REMOVE THIS AFTER CREATING YOUR USER FOR SECURITY!"""
     from django.contrib.auth.models import User
+    from django.db import connection
+    import traceback
     
     username = request.data.get('username')
     password = request.data.get('password')
@@ -113,11 +115,33 @@ def create_user_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    # Check if user already exists
-    if User.objects.filter(username=username).exists():
+    # Validate password length
+    if len(password) < 6:
         return Response(
-            {'error': 'Username already exists'},
+            {'error': 'Password must be at least 6 characters long'},
             status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Check database connection
+    try:
+        connection.ensure_connection()
+    except Exception as db_error:
+        return Response(
+            {'error': f'Database connection failed: {str(db_error)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+    # Check if user already exists
+    try:
+        if User.objects.filter(username=username).exists():
+            return Response(
+                {'error': 'Username already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except Exception as e:
+        return Response(
+            {'error': f'Database error checking user: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
     try:
@@ -137,7 +161,24 @@ def create_user_view(request):
             }
         }, status=status.HTTP_201_CREATED)
     except Exception as e:
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        # Log full traceback for debugging
+        error_trace = traceback.format_exc()
+        print(f"Error creating user: {error_trace}")  # This will appear in Render logs
+        
+        # Return user-friendly error message
+        error_msg = str(e)
+        if 'UNIQUE constraint' in error_msg or 'duplicate key' in error_msg.lower():
+            return Response(
+                {'error': 'Username already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        elif 'no such table' in error_msg.lower() or 'relation' in error_msg.lower():
+            return Response(
+                {'error': 'Database tables not set up. Please run migrations.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        else:
+            return Response(
+                {'error': f'Failed to create user: {error_msg}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
