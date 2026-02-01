@@ -27,13 +27,14 @@ function Login({ onLogin }) {
       
       if (response.data.success) {
         // Login successful - session cookie is set
-        // Wait a moment for cookie to be set
-        await new Promise(resolve => setTimeout(resolve, 100))
-        if (onLogin) onLogin()
         setUsername('')
         setPassword('')
-        // Reload to ensure session is properly set
-        window.location.reload()
+        // Call onLogin callback
+        if (onLogin) onLogin()
+        // Small delay then reload to ensure session is set
+        setTimeout(() => {
+          window.location.reload()
+        }, 200)
       } else {
         throw new Error('Login failed')
       }

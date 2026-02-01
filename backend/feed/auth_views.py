@@ -13,6 +13,7 @@ from .serializers import UserSerializer
 def login_view(request):
     """Custom login endpoint for frontend"""
     from django.middleware.csrf import get_token
+    from django.views.decorators.csrf import ensure_csrf_cookie
     
     username = request.data.get('username')
     password = request.data.get('password')
@@ -26,17 +27,30 @@ def login_view(request):
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        # Get CSRF token for the response
+        # Get CSRF token
         csrf_token = get_token(request)
+        
         response = Response({
             'success': True,
             'user': {
                 'id': user.id,
                 'username': user.username
-            }
+            },
+            'csrf_token': csrf_token  # Also return in response body
         })
+        
         # Set CSRF token in response header
         response['X-CSRFToken'] = csrf_token
+        # Ensure CSRF cookie is set
+        response.set_cookie(
+            'csrftoken',
+            csrf_token,
+            max_age=60 * 60 * 24 * 7,  # 7 days
+            httponly=False,  # Allow JavaScript to read
+            samesite='None',
+            secure=True  # HTTPS only
+        )
+        
         return response
     else:
         return Response(

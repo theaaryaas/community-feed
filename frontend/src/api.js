@@ -39,26 +39,28 @@ const api = axios.create({
   },
 })
 
-// Get CSRF token from backend before making POST requests
-async function ensureCsrfToken() {
-  const csrftoken = getCsrfToken();
-  if (!csrftoken) {
-    // Try to get CSRF token by making a GET request
-    try {
-      await api.get('/check-auth/');
-      // CSRF token should now be in cookies
-    } catch (e) {
-      // Ignore errors, just trying to get CSRF token
-    }
-  }
-  return getCsrfToken();
-}
-
 // Add CSRF token to all POST/PUT/DELETE requests
 api.interceptors.request.use(
   async (config) => {
     if (['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
-      const csrftoken = await ensureCsrfToken();
+      // Try to get CSRF token from cookies
+      let csrftoken = getCsrfToken();
+      
+      // If no token, try to get it by making a GET request first
+      if (!csrftoken) {
+        try {
+          // Make a simple GET request to get CSRF token
+          const response = await fetch(API_BASE_URL + '/check-auth/', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          // Token should now be in cookies
+          csrftoken = getCsrfToken();
+        } catch (e) {
+          console.warn('Could not get CSRF token:', e);
+        }
+      }
+      
       if (csrftoken) {
         config.headers['X-CSRFToken'] = csrftoken;
       }
@@ -70,9 +72,20 @@ api.interceptors.request.use(
   }
 )
 
-// Add response interceptor for error handling
+// Add response interceptor for error handling and CSRF token extraction
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If response contains CSRF token, store it
+    if (response.data?.csrf_token) {
+      document.cookie = `csrftoken=${response.data.csrf_token}; path=/; SameSite=None; Secure`
+    }
+    // Also check response headers
+    const csrfHeader = response.headers['x-csrftoken']
+    if (csrfHeader) {
+      document.cookie = `csrftoken=${csrfHeader}; path=/; SameSite=None; Secure`
+    }
+    return response;
+  },
   (error) => {
     console.error('API Error:', {
       url: error.config?.url,

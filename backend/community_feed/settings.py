@@ -168,3 +168,15 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
     'http://localhost:3000,http://127.0.0.1:3000'
 ).split(',')
+
+# Session settings for cross-domain cookies
+SESSION_COOKIE_SECURE = os.getenv('DEBUG', 'False') != 'True'  # True in production (HTTPS)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'None'  # Allow cross-site cookies
+SESSION_COOKIE_DOMAIN = None  # Let browser handle domain
+
+# CSRF cookie settings
+CSRF_COOKIE_SECURE = os.getenv('DEBUG', 'False') != 'True'  # True in production
+CSRF_COOKIE_HTTPONLY = False  # Must be False for JavaScript to read
+CSRF_COOKIE_SAMESITE = 'None'  # Allow cross-site cookies
+CSRF_USE_SESSIONS = False  # Use cookie-based CSRF
