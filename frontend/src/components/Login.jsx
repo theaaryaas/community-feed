@@ -68,8 +68,13 @@ function Login({ onLogin }) {
         </button>
       </form>
       <p className="mt-4 text-sm text-gray-600">
-        Need an account? Create one in{' '}
-        <a href="http://localhost:8000/admin" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+        Need an account? Create one using Render Shell or{' '}
+        <a 
+          href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000'}/admin`} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-blue-600 hover:underline"
+        >
           Django Admin
         </a>
       </p>
