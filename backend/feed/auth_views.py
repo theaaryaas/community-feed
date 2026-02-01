@@ -72,3 +72,51 @@ def logout_view(request):
         'success': True,
         'message': 'Logged out successfully'
     })
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_user_view(request):
+    """Temporary endpoint to create user (for free tier without shell access)
+    ⚠️ REMOVE THIS AFTER CREATING YOUR USER FOR SECURITY!"""
+    from django.contrib.auth.models import User
+    
+    username = request.data.get('username')
+    password = request.data.get('password')
+    email = request.data.get('email', '')
+    
+    if not username or not password:
+        return Response(
+            {'error': 'Username and password are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Check if user already exists
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {'error': 'Username already exists'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            is_staff=True,  # Allow admin access
+            is_superuser=True  # Superuser access
+        )
+        return Response({
+            'success': True,
+            'message': f'User {username} created successfully',
+            'user': {
+                'id': user.id,
+                'username': user.username
+            }
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
