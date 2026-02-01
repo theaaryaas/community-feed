@@ -81,13 +81,12 @@ WSGI_APPLICATION = 'community_feed.wsgi.application'
 # Use PostgreSQL if DATABASE_URL is set (Docker/Render), otherwise use SQLite (local dev)
 if os.getenv('DATABASE_URL'):
     import dj_database_url
-    db_config = dj_database_url.config(default=os.getenv('DATABASE_URL'))
-    # Use psycopg3 if available, otherwise psycopg2
-    if 'psycopg' in str(db_config.get('ENGINE', '')) or not db_config.get('ENGINE'):
-        # Ensure we're using the correct engine for psycopg3
-        db_config['ENGINE'] = 'django.db.backends.postgresql'
     DATABASES = {
-        'default': db_config
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 else:
     DATABASES = {
