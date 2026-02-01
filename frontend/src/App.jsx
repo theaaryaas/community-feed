@@ -3,6 +3,7 @@ import Feed from './components/Feed'
 import Leaderboard from './components/Leaderboard'
 import CreatePost from './components/CreatePost'
 import Login from './components/Login'
+import Register from './components/Register'
 import { leaderboardAPI, authAPI } from './api'
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [currentUser, setCurrentUser] = useState(null)
+  const [showRegister, setShowRegister] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -39,6 +41,12 @@ function App() {
 
   const handleLogin = () => {
     setIsAuthenticated(true)
+    checkAuth()
+  }
+
+  const handleRegister = () => {
+    // After registration, switch to login
+    setShowRegister(false)
     checkAuth()
   }
 
@@ -108,7 +116,36 @@ function App() {
             {checkingAuth ? (
               <div className="text-center py-8 text-gray-500">Checking authentication...</div>
             ) : !isAuthenticated ? (
-              <Login onLogin={handleLogin} />
+              <>
+                {showRegister ? (
+                  <Register onRegister={handleRegister} />
+                ) : (
+                  <Login onLogin={handleLogin} />
+                )}
+                <div className="text-center mt-4">
+                  {showRegister ? (
+                    <p className="text-sm text-gray-600">
+                      Already have an account?{' '}
+                      <button
+                        onClick={() => setShowRegister(false)}
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        Login here
+                      </button>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      Don't have an account?{' '}
+                      <button
+                        onClick={() => setShowRegister(true)}
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        Create one here
+                      </button>
+                    </p>
+                  )}
+                </div>
+              </>
             ) : (
               <>
                 <CreatePost onPostCreated={handleRefresh} />
